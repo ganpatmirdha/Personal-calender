@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bd6">
+<meta name="description" content="Aapka personal calendar — rang, symbols aur notes ke saath.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mera Personal Calendar</title>
+<style>
+:root{--bg:#f5f6fb;--card:#fff;--ink:#202235;--muted:#777b91;--accent:#5b5bd6;--line:#e7e8f1}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:linear-gradient(135deg,#5b5bd6,#8a62d9);color:white;padding:22px 18px 25px;border-radius:0 0 25px 25px}
+h1{font-size:23px;margin:0 0 5px}header p{margin:0;opacity:.9;font-size:13px}
+main{max-width:720px;margin:0 auto;padding:14px}
+.panel{background:var(--card);border-radius:18px;padding:15px;margin:0 0 13px;box-shadow:0 4px 18px #23234a0a}
+.controls{display:flex;gap:8px;align-items:center}.controls select{flex:1;min-width:0}
+select,button,input,textarea{font:inherit;border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff;color:var(--ink)}
+button{cursor:pointer;font-weight:600}.primary{background:var(--accent);color:white;border-color:var(--accent)}.soft{background:#f0efff;border-color:#e2e0ff;color:#4644b9}
+.weekdays,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.weekdays{text-align:center;color:var(--muted);font-size:12px;margin-bottom:7px}
+.day{position:relative;min-height:53px;padding:5px 1px 4px;border:1px solid var(--line);border-radius:11px;text-align:center;background:#fff;display:flex;flex-direction:column;align-items:center;gap:2px}
+.day .num{font-size:14px;font-weight:650;line-height:18px}.day .sym{font-size:13px;line-height:15px;min-height:15px}.day .dot{position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%}
+.day.blank{visibility:hidden}.day.today{outline:2px solid var(--accent);outline-offset:-2px}.day.selected{background:#efefff;border-color:var(--accent)}.day.hasnote .num:after{content:"";display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--accent);margin-left:3px;vertical-align:middle}
+.small{font-size:12px;color:var(--muted)}.section-title{font-weight:750;margin:0 0 10px;font-size:16px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}
+textarea{width:100%;min-height:88px;resize:vertical}.full{width:100%}
+.colors{display:flex;gap:9px;flex-wrap:wrap}.color{width:30px;height:30px;border-radius:50%;padding:0;border:2px solid #ffffff;box-shadow:0 0 0 1px #d9dbe7}.color.active{box-shadow:0 0 0 3px var(--accent)}
+.symbols{display:flex;gap:7px;flex-wrap:wrap}.symbol{min-width:42px;padding:8px 10px;font-size:19px}.symbol.active{background:#efefff;border-color:var(--accent)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 0 24px}
+@media(min-width:520px){.day{min-height:65px}.day .num{font-size:15px}.day .sym{font-size:15px}}
+</style>
+</head>
+<body>
+<header><h1>📅 Mera Personal Calendar</h1><p>Apni dates, apne rang, apne notes.</p></header>
+<main>
+<section class="panel">
+<div class="controls">
+<button id="prev" aria-label="Pichhla mahina">‹</button>
+<select id="month" aria-label="Mahina"></select>
+<select id="year" aria-label="Saal"></select>
+<button id="next" aria-label="Agla mahina">›</button>
+</div>
+<div style="height:14px"></div>
+<div class="weekdays"><div>रवि</div><div>सोम</div><div>मंगल</div><div>बुध</div><div>गुरु</div><div>शुक्र</div><div>शनि</div></div>
+<div class="days" id="days"></div>
+<div class="small" style="margin-top:10px">Kisi date par tap karke uska rang, symbol aur note set karo.</div>
+</section>
+<section class="panel">
+<h2 class="section-title" id="editTitle">Date select karo</h2>
+<label>Rang</label><div class="colors" id="colors"></div>
+<label>Symbol</label><div class="symbols" id="symbols"></div>
+<label>Note</label><textarea id="note" placeholder="Is date ke liye apna note likho..."></textarea>
+<div class="actions"><button class="primary" id="save">Save date</button><button id="clear">Date saaf karo</button></div>
+</section>
+<section class="panel">
+<h2 class="section-title">Backup</h2>
+<p class="small">Apni calendar details ka backup download kar sakte ho. Naye browser/device par restore bhi kar sakte ho.</p>
+<div class="actions"><button class="soft" id="export">Backup download</button><button class="soft" id="importBtn">Backup restore</button></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+</section>
+<footer>Data isi browser/device mein save hota hai. Backup rakhna achha rahega.</footer>
+</main>
+<script>
+const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const palette=[['#ffffff','Safed'],['#ff6b6b','Laal'],['#ff9f43','Narangi'],['#ffd93d','Peela'],['#6bcb77','Hara'],['#4d96ff','Neela'],['#a66cff','Baingani'],['#ff8fab','Gulabi'],['#8d99ae','Grey']];
+const symbols=['','⭐','❤️','✓','✗','🎂','📚','🏃','💰','🎉','⚑','🔔'];
+let now=new Date(), viewYear=now.getFullYear(), viewMonth=now.getMonth(), selected='', selectedColor='#ffffff', selectedSymbol='';
+let data={}; try{data=JSON.parse(localStorage.getItem('personalCalendarData')||'{}')}catch(e){data={}}
+const $=id=>document.getElementById(id);
+months.forEach((m,i)=>{let o=document.createElement('option');o.value=i;o.textContent=m;$('month').append(o)});
+for(let y=2020;y<=2045;y++){let o=document.createElement('option');o.value=y;o.textContent=y;$('year').append(o)}
+$('month').value=viewMonth;$('year').value=viewYear;
+palette.forEach(([c,n])=>{let b=document.createElement('button');b.className='color';b.style.background=c;b.title=n;b.setAttribute('aria-label',n);b.onclick=()=>{selectedColor=c;renderChoices()};$('colors').append(b)});
+symbols.forEach(s=>{let b=document.createElement('button');b.className='symbol';b.textContent=s||'—';b.title=s||'Koi symbol nahi';b.onclick=()=>{selectedSymbol=s;renderChoices()};$('symbols').append(b)});
+function key(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function persist(){localStorage.setItem('personalCalendarData',JSON.stringify(data))}
+function renderChoices(){[...$('colors').children].forEach((b,i)=>b.classList.toggle('active',palette[i][0]===selectedColor));[...$('symbols').children].forEach((b,i)=>b.classList.toggle('active',symbols[i]===selectedSymbol))}
+function render(){
+$('month').value=viewMonth;$('year').value=viewYear;const root=$('days');root.innerHTML='';
+const first=new Date(viewYear,viewMonth,1).getDay(), count=new Date(viewYear,viewMonth+1,0).getDate();
+for(let i=0;i<first;i++){let b=document.createElement('div');b.className='day blank';root.append(b)}
+for(let d=1;d<=count;d++){let k=key(viewYear,viewMonth,d),v=data[k]||{},b=document.createElement('button');b.className='day';if(k===key(now.getFullYear(),now.getMonth(),now.getDate()))b.classList.add('today');if(k===selected)b.classList.add('selected');if(v.note)b.classList.add('hasnote');b.style.background=v.color&&v.color!=='#ffffff'?v.color:'#fff';
+let n=document.createElement('span');n.className='num';n.textContent=d;b.append(n);let s=document.createElement('span');s.className='sym';s.textContent=v.symbol||'';b.append(s);if(v.color&&v.color!=='#ffffff'){let dot=document.createElement('span');dot.className='dot';dot.style.background=v.color;b.append(dot)}
+b.onclick=()=>selectDate(k);root.append(b)}
+}
+function selectDate(k){selected=k;let v=data[k]||{};selectedColor=v.color||'#ffffff';selectedSymbol=v.symbol||'';$('note').value=v.note||'';$('editTitle').textContent='Selected: '+k;renderChoices();render()}
+function changeMonth(n){viewMonth+=n;if(viewMonth<0){viewMonth=11;viewYear--}if(viewMonth>11){viewMonth=0;viewYear++}render()}
+$('prev').onclick=()=>changeMonth(-1);$('next').onclick=()=>changeMonth(1);
+$('month').onchange=()=>{viewMonth=+$('month').value;render()};$('year').onchange=()=>{viewYear=+$('year').value;render()};
+$('save').onclick=()=>{if(!selected){alert('Pehle calendar mein ek date select karo.');return}let note=$('note').value.trim();if(selectedColor==='#ffffff'&&!selectedSymbol&&!note){delete data[selected]}else{data[selected]={color:selectedColor,symbol:selectedSymbol,note}}persist();render();alert('Date save ho gayi.')};
+$('clear').onclick=()=>{if(!selected){alert('Pehle date select karo.');return}delete data[selected];persist();selectedColor='#ffffff';selectedSymbol='';$('note').value='';renderChoices();render()};
+$('export').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mera-calendar-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let obj=JSON.parse(await f.text());if(!obj||typeof obj!=='object'||Array.isArray(obj))throw Error();data=obj;persist();render();alert('Backup restore ho gaya.')}catch(err){alert('Yeh backup file sahi nahi hai.')}e.target.value=''};
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();renderChoices();
+</script>
+</body>
+</html>
